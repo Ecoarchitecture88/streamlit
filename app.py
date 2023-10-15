@@ -13,6 +13,27 @@ db_elements = db['elements']
 db_nlp = db['nlp']
 
 
+# Function to get embeddings from document
+def get_embeddings_from(id):
+  sentences = db_documents.find({
+      '$and': [
+          {'uuid': id},
+          {'type': 'sentence'},
+          {'state': 'EMBEDDINGS_PROCESED'},
+          { 'coherence': { '$exists': True }},
+          {'root': True}
+
+      ]
+  })
+  list_sentences = list(sentences)
+  #print(f'Corpus UUID: {id} #:{len(list_sentences)}')
+  embeddings = []
+  for e in range(len(list_sentences)):
+    embedding = list_sentences[e]["embeddings"]
+    embeddings.append(embedding[0])
+
+
+  return (list_sentences, embeddings)
 
 def get_sims_legal(embeddings1, list_sentences, min_score, min_text_length=10):
   # Get All Documents (Collection)
