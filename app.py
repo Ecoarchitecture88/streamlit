@@ -1,6 +1,7 @@
 # Get Dataset from Mongo
 
 from pymongo import MongoClient
+import streamlit as st
 
 
 CONNECTION_STRING = "mongodb+srv://eco-platform:gWfXUVDoNvlJr45u@eco-mongo-cluster.mrcy26g.mongodb.net/?retryWrites=true&w=majority"
@@ -65,7 +66,78 @@ def get_sims_legal(embeddings1, list_sentences, min_score, min_text_length=10):
   return legal_sims
 
 
+def init_html(title):
+  html = ''
+  html += '<!DOCTYPE html>\n<html>\n <head>\n</head>\n <body>\n'
+  html += f'<h2> {title}</h2>\n'
+  return html
 
+def close_html(html):
+  html += '</body>\n</html>'
+  return html
+
+def get_matches_html_output(sims, title):
+  docs = []
+  uniques = {}
+
+  html = init_html(title)
+  #html += '<!DOCTYPE html>\n<html>\n <head>\n</head>\n <body>\n'
+  #html += '<h2> Sustentos Legales</h2>\n'
+
+  for sim in sims:
+    id = sim['id']
+
+    if id in uniques:
+      item = uniques[id]
+    else:
+      item = {
+          'id': id,
+          'text': sim['original'],
+          'matches': []
+      }
+
+    item['matches'].append(sim)
+    uniques[id] = item
+
+  for unique in uniques.keys():
+    html += '<section>\n'
+    item = uniques[unique]
+    text = item["text"]
+    docs.append(text)
+    #print(f'A: {text}\n')
+    html+= f'<p> <strong>A:</strong> {text} </p>\n'
+
+    matches = item['matches']
+    matches.sort(key=score, reverse=True)
+    count = 1
+    html+= f'<dl>\n'
+    for m in matches:
+      text_sim = m['similarity']
+      docs.append(text_sim)
+
+
+      html+= f'<dt> <strong>B-{count}:</strong> {text_sim}</dt>\n'
+      html+= f'<dd> <strong>Score:</strong> {m["score"]}</dd>\n'
+      html+= f'<dd> <strong>Name:</strong> {m["desc"]} </dd>\n'
+      html+= f'<dd> <strong>Page:</strong> {m["page"]} </dd>\n'
+      html+= f'<dd> <strong>Sentence:</strong>{m["sentence"]} </dd>\n'
+
+      #print("B-{}: {}\nScore: {}\nName: {}\nPage: {}\tSentence: {}\t UUID: {}\n\n ".
+      #   format(count,
+      #           text_sim,
+      #           m['score'],
+      #           m['desc'],
+      #           m['page'],
+      #           m['sentence'],
+      #         m['uuid_sim'])
+      #   )
+      count += 1
+    #print('----------------------------------\n')
+    html+= f'</dl>\n'
+    html += '</section>\n'
+
+  html = close_html(html)
+  return html
 
 from sentence_transformers import SentenceTransformer, util
 import torch
@@ -86,3 +158,28 @@ if device != 'cuda':
           "clicking Runtime > Change runtime type > GPU.")
 
 model = SentenceTransformer('all-mpnet-base-v2', device=device)
+
+
+# Q&A
+
+
+prompts = [
+    {'text': 'Atribuciones y facultades del Director General mencionadas en el CAPÍTULO CUARTO SECCIÓN PRIMERA DE LA DIRECCIÓN GENERAL','_id': 1},
+    {'text': 'Atribuciones y facultades del Director General','_id': 2},
+    {'text': 'Presentar anualmente al Consejo Técnico el informe financiero y actuarial','_id': 3}
+     
+
+]
+
+
+
+embeddings1= []
+prompt_embeddings = model.encode(prompts, show_progress_bar=True, convert_to_numpy=True)
+list_e = prompt_embeddings.tolist()
+for i in list_e:
+  embeddings1.append(i)
+#SIM
+answers = get_sims_legal(embeddings1, prompts, 0.80, 1)
+
+html = get_matches_html_output(answers, 'Q&A')
+st.markdown(html, unsafe_allow_html=True)
