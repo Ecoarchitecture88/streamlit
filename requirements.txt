@@ -1,0 +1,7 @@
+transformers
+torch
+sentence-transformers
+bertopic
+stanza
+pymongo
+pymongo[srv]
