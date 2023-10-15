@@ -1,5 +1,7 @@
 # Get Dataset from Mongo
 
+from pymongo import MongoClient
+
 
 CONNECTION_STRING = "mongodb+srv://eco-platform:gWfXUVDoNvlJr45u@eco-mongo-cluster.mrcy26g.mongodb.net/?retryWrites=true&w=majority"
 client = MongoClient(CONNECTION_STRING)
